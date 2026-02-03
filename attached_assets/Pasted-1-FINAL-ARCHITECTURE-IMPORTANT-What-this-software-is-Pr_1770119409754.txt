@@ -1,0 +1,210 @@
+1️⃣ FINAL ARCHITECTURE (IMPORTANT)
+What this software is
+
+Professional CWC-style web software prototype
+
+React-only frontend
+
+Mock REST data
+
+WHAMO-inspired network + input file generator
+
+Clean, government-grade UI
+
+What this software is NOT
+
+Not running WHAMO.EXE
+
+Not solving PDEs
+
+Not doing real water hammer math
+
+High-level Architecture
+React (Vite)
+│
+├─ UI Pages (Dashboard, Dams, Simulation, Map, Reports)
+│
+├─ Components (Cards, Charts, Tables, Forms)
+│
+├─ Element Builder (Pipe, Valve, Reservoir, Turbine, Surge Tank)
+│
+├─ INP Generator (Text-based WHAMO-style file)
+│
+└─ Mock API Data (JSON)
+
+2️⃣ COMPLETE REACT PROJECT (VITE)
+📁 Folder Structure
+cwc-dam-software/
+├── index.html
+├── package.json
+├── tailwind.config.js
+├── postcss.config.js
+├── vite.config.js
+└── src/
+    ├── main.jsx
+    ├── App.jsx
+    ├── index.css
+    │
+    ├── data/
+    │   ├── dams.js
+    │   ├── simulationMock.js
+    │
+    ├── layout/
+    │   ├── Sidebar.jsx
+    │   ├── Topbar.jsx
+    │
+    ├── components/
+    │   ├── StatCard.jsx
+    │   ├── LineChartCard.jsx
+    │   ├── DataTable.jsx
+    │
+    ├── pages/
+    │   ├── Login.jsx
+    │   ├── Dashboard.jsx
+    │   ├── Dams.jsx
+    │   ├── DamDetail.jsx
+    │   ├── Simulation.jsx
+    │   ├── MapView.jsx
+    │   ├── Reports.jsx
+    │
+    ├── builder/
+    │   ├── ElementForm.jsx
+    │   ├── ElementList.jsx
+    │   ├── inpGenerator.js
+
+3️⃣ ELEMENT BUILDER (PIPE, VALVE, RESERVOIR, TURBINE)
+🧩 ElementForm.jsx
+import { useState } from "react";
+
+export default function ElementForm({ onAdd }) {
+  const [type, setType] = useState("PIPE");
+  const [id, setId] = useState("");
+  const [length, setLength] = useState("");
+  const [diameter, setDiameter] = useState("");
+
+  const submit = () => {
+    onAdd({
+      type,
+      id,
+      length,
+      diameter,
+    });
+  };
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Add System Element</h3>
+
+      <select onChange={e => setType(e.target.value)} className="input">
+        <option>PIPE</option>
+        <option>VALVE</option>
+        <option>RESERVOIR</option>
+        <option>TURBINE</option>
+        <option>SURGETANK</option>
+      </select>
+
+      <input placeholder="Element ID" onChange={e => setId(e.target.value)} />
+      <input placeholder="Length" onChange={e => setLength(e.target.value)} />
+      <input placeholder="Diameter" onChange={e => setDiameter(e.target.value)} />
+
+      <button onClick={submit} className="btn-primary mt-2">
+        Add Element
+      </button>
+    </div>
+  );
+}
+
+📄 ElementList.jsx
+export default function ElementList({ elements }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>ID</th>
+          <th>Length</th>
+          <th>Diameter</th>
+        </tr>
+      </thead>
+      <tbody>
+        {elements.map((e, i) => (
+          <tr key={i}>
+            <td>{e.type}</td>
+            <td>{e.id}</td>
+            <td>{e.length}</td>
+            <td>{e.diameter}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+4️⃣ WHAMO-STYLE .INP FILE GENERATOR (KEY PART)
+📄 inpGenerator.js
+
+This generates a file VERY SIMILAR to your uploaded .inp
+
+export function generateINP(elements) {
+  let text = "";
+  text += "C PROJECT NAME\n";
+  text += "SYSTEM\n";
+
+  elements.forEach((e, i) => {
+    text += `ELEM ${e.type}_${e.id} LINK ${i + 1} ${i + 2}\n`;
+  });
+
+  text += "FINISH\n\n";
+  text += "C ELEMENT PROPERTIES\n";
+
+  elements.forEach(e => {
+    if (e.type === "PIPE") {
+      text += `CONDUIT ID ${e.id} LENG ${e.length} DIAM ${e.diameter}\n`;
+      text += " ADDEDLOSS CPLUS 0.1 CMINUS 0.1\n";
+      text += "FINISH\n";
+    }
+
+    if (e.type === "RESERVOIR") {
+      text += `RESERVOIR ID ${e.id}\n ELEV 100\nFINISH\n`;
+    }
+
+    if (e.type === "VALVE") {
+      text += `VALVE ID ${e.id}\n LOSS 1.2\nFINISH\n`;
+    }
+
+    if (e.type === "TURBINE") {
+      text += `TURBINE ID ${e.id}\n POWER 100\nFINISH\n`;
+    }
+  });
+
+  text += "\nCONTROL\n DTCOMP 0.01 TMAX 20\nFINISH\nGO\nGOODBYE";
+
+  return text;
+}
+
+📥 Download .inp file in Simulation.jsx
+import { generateINP } from "../builder/inpGenerator";
+
+const downloadINP = () => {
+  const content = generateINP(elements);
+  const blob = new Blob([content], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "simulation.inp";
+  link.click();
+};
+
+
+✔ Output structure matches your uploaded WHAMO input
+✔ Human-readable
+✔ Future backend compatible
+
+5️⃣ MAP VIEW (LEAFLET)
+<MapContainer center={[23, 78]} zoom={5}>
+  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+  {dams.map(d => (
+    <Marker position={[d.lat, d.lng]} key={d.id}>
+      <Popup>{d.name}</Popup>
+    </Marker>
+  ))}
+</MapContainer>
