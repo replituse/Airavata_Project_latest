@@ -5,13 +5,12 @@ export function generateINP(elements: Element[]) {
   text += "C PROJECT NAME: HYDRAULIC SIMULATION\n";
   text += "SYSTEM\n";
 
-  elements.forEach((e, i) => {
-    // Simple connectivity logic for demo: linked in sequence
-    // In a real app, you'd have explicit upstream/downstream properties
-    if (i < elements.length - 1) {
-        text += `ELEM ${e.type}_${e.name} LINK ${i + 1} ${i + 2}\n`;
-    } else {
-        text += `ELEM ${e.type}_${e.name} LINK ${i + 1} END\n`;
+  // System connectivity
+  elements.forEach((e) => {
+    if (e.nodeA !== null && e.nodeB !== null) {
+      text += `    EL ${e.name} LINK ${e.nodeA} ${e.nodeB}\n`;
+    } else if (e.nodeA !== null) {
+      text += `    EL ${e.name} AT ${e.nodeA}\n`;
     }
   });
 
@@ -19,24 +18,25 @@ export function generateINP(elements: Element[]) {
   text += "C ELEMENT PROPERTIES\n";
 
   elements.forEach(e => {
-    const p = e.properties as any; // Cast to any to access specific properties safely
+    const p = e.properties as any;
     
-    if (e.type === "PIPE") {
-      text += `CONDUIT ID ${e.name} LENG ${p.length || 0} DIAM ${p.diameter || 0}\n`;
-      text += " ADDEDLOSS CPLUS 0.1 CMINUS 0.1\n";
-      text += "FINISH\n";
+    if (e.type === "CONDUIT") {
+      text += `CONDUIT ID ${e.name}\n`;
+      text += `    LENG ${p.length || 1000} DIAM ${p.diameter || 12} FRIC ${p.friction || 0.01}\n`;
+      text += `    CPLUS ${p.cPlus || 0.1} CMINUS ${p.cMinus || 0.1}\n`;
+      text += "FINISH\n\n";
     } else if (e.type === "RESERVOIR") {
-      text += `RESERVOIR ID ${e.name}\n ELEV ${p.elevation || 100}\nFINISH\n`;
+      text += `RESERVOIR ID ${e.name}\n    ELEV ${p.elevation || 100}\nFINISH\n\n`;
     } else if (e.type === "VALVE") {
-      text += `VALVE ID ${e.name}\n LOSS ${p.loss || 1.2}\nFINISH\n`;
-    } else if (e.type === "TURBINE") {
-      text += `TURBINE ID ${e.name}\n POWER ${p.power || 100}\nFINISH\n`;
+      text += `VALVE ID ${e.name}\n    LOSS ${p.loss || 1.2}\nFINISH\n\n`;
     } else if (e.type === "SURGETANK") {
-      text += `SURGETANK ID ${e.name}\n ELTOP ${p.elTop || 0} ELBOTTOM ${p.elBottom || 0} DIAM ${p.diameter || 0}\n`;
-      text += ` CELERITY ${p.celerity || 1000} FRICTION ${p.friction || 0.01}\nFINISH\n`;
+      text += `SURGETANK ID ${e.name}\n    ELTOP ${p.elTop || 150} ELBOT ${p.elBottom || 50} DIAM ${p.diameter || 10}\n`;
+      text += "FINISH\n\n";
+    } else if (e.type === "D_CHANGE") {
+      text += `D_CHANGE ID ${e.name}\n    DIAM ${p.diameter || 12}\nFINISH\n\n`;
     }
   });
 
-  text += "\nCONTROL\n DTCOMP 0.01 TMAX 20\nFINISH\nGO\nGOODBYE";
+  text += "CONTROL\n    DTCOMP 0.01 DTOUT 0.1 TMAX 20.0\nFINISH\n\nGO\nGOODBYE";
   return text;
 }

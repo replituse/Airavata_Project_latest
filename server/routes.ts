@@ -47,11 +47,12 @@ export async function registerRoutes(
     
     // Generate mock results matching WHAMO OUT format expectations
     const results = [];
-    for (let t = 0; t <= duration; t += 10) {
+    const dt = 0.1; // Output interval
+    for (let t = 0; t <= duration; t += dt) {
       results.push({
-        time: t,
-        head: 4130.58 + Math.sin(t / 50) * 5,
-        flow: 3000 - (t > 20 ? 3000 : (t / 20) * 3000) + Math.random() * 10,
+        time: parseFloat(t.toFixed(2)),
+        head: 4130.58 + Math.sin(t / 2) * 10 * Math.exp(-t / 10),
+        flow: 3000 * Math.cos(t / 4) * Math.exp(-t / 15) + Math.random() * 5,
       });
     }
 

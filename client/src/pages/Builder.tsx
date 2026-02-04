@@ -52,6 +52,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useElements, useCreateElement, useDeleteElement } from "@/hooks/use-elements";
 import { useToast } from "@/hooks/use-toast";
+import { generateINP } from "@/lib/inpGenerator";
+import { useLocation } from "wouter";
 
 const componentPalette = [
   { id: "CONDUIT", name: "CONDUIT", desc: "Pipe Element", icon: Droplets, color: "bg-blue-500" },
@@ -92,6 +94,7 @@ export default function Builder() {
   const createElement = useCreateElement();
   const deleteElement = useDeleteElement();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -101,23 +104,10 @@ export default function Builder() {
   const [inpPreview, setInpPreview] = useState("");
 
   const generateInp = useCallback(() => {
-    let inp = "WHAMO Hydraulic Simulation\n\nSYSTEM\n";
-    nodes.forEach(node => {
-      inp += `    EL ${node.data.label} AT ${node.id}\n`;
-    });
-    edges.forEach(edge => {
-      inp += `    EL ${nodes.find(n => n.id === edge.source)?.data.label} LINK ${edge.source} ${edge.target}\n`;
-    });
-    inp += "FINISH\n\n";
-
-    nodes.forEach(node => {
-      const type = node.data.type;
-      inp += `${type} ID ${node.data.label}\n    FINISH\n\n`;
-    });
-
-    inp += "CONTROL\n    DTCOMP 0.01 DTOUT 0.1 TMAX 20.0\nFINISH\n\nGO\nGOODBYE";
+    if (!elements) return;
+    const inp = generateINP(elements);
     setInpPreview(inp);
-  }, [nodes, edges]);
+  }, [elements]);
 
   useMemo(() => {
     if (elements) {
@@ -185,7 +175,12 @@ export default function Builder() {
           <ToolbarButton icon={Redo2} tooltip="Redo" />
         </div>
         <div className="flex gap-1 px-4 border-r border-[#444]">
-          <ToolbarButton icon={Play} tooltip="Run Simulation" className="text-blue-400" />
+          <ToolbarButton 
+            icon={Play} 
+            tooltip="Run Simulation" 
+            className="text-blue-400" 
+            onClick={() => setLocation("/simulation")}
+          />
           <ToolbarButton icon={Square} tooltip="Stop Simulation" />
         </div>
         <div className="flex gap-1 px-4">
@@ -297,12 +292,17 @@ export default function Builder() {
   );
 }
 
-function ToolbarButton({ icon: Icon, tooltip, className }: { icon: any, tooltip: string, className?: string }) {
+function ToolbarButton({ icon: Icon, tooltip, className, onClick }: { icon: any, tooltip: string, className?: string, onClick?: () => void }) {
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className={cn("h-8 w-8 text-[#aaa] hover:text-white hover:bg-[#444] rounded", className)}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={cn("h-8 w-8 text-[#aaa] hover:text-white hover:bg-[#444] rounded", className)}
+            onClick={onClick}
+          >
             <Icon className="w-4 h-4" />
           </Button>
         </TooltipTrigger>
