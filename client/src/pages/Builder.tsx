@@ -42,6 +42,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -131,7 +132,7 @@ export default function Builder() {
 
   const [selectedElementId, setSelectedElementId] = useState<number | null>(null);
 
-  const onNodeClick = useCallback((_: any, node: Node) => {
+  const onNodeDoubleClick = useCallback((_: any, node: Node) => {
     setSelectedElementId(parseInt(node.id));
   }, []);
 
@@ -225,7 +226,7 @@ export default function Builder() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
-            onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
             fitView
           >
             <Background color="#333" gap={24} />
@@ -266,7 +267,14 @@ export default function Builder() {
                 </div>
                 <div className="mb-4">
                   <Label className="text-[10px] text-[#888] uppercase font-bold tracking-wider">ID / Name</Label>
-                  <div className="text-white font-bold">{selectedElement.name}</div>
+                  <Input 
+                    value={selectedElement.name} 
+                    onChange={(e) => {
+                      // Note: Element name update logic would go here
+                      // For now we'll just show it's editable
+                    }}
+                    className="bg-[#121212] border-[#444] text-white text-xs h-8 mt-1"
+                  />
                 </div>
                 <Separator className="bg-[#333] my-4" />
                 <Button 
