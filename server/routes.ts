@@ -45,13 +45,13 @@ export async function registerRoutes(
   app.post(api.simulation.run.path, async (req, res) => {
     const { duration } = req.body;
     
-    // Generate mock results
+    // Generate mock results matching WHAMO OUT format expectations
     const results = [];
-    for (let t = 0; t <= duration; t += 1) {
+    for (let t = 0; t <= duration; t += 10) {
       results.push({
         time: t,
-        head: 100 + Math.sin(t / 2) * 10 - Math.random() * 2,
-        flow: 50 + Math.cos(t / 2) * 5 + Math.random(),
+        head: 4130.58 + Math.sin(t / 50) * 5,
+        flow: 3000 - (t > 20 ? 3000 : (t / 20) * 3000) + Math.random() * 10,
       });
     }
 
@@ -62,7 +62,7 @@ export async function registerRoutes(
   });
 
   // Seed Data
-  await storage.seedDams();
+  await storage.seedAll();
 
   return httpServer;
 }

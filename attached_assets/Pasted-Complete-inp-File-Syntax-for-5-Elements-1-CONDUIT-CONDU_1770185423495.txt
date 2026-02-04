@@ -1,0 +1,236 @@
+Complete .inp File Syntax for 5 Elements
+1. CONDUIT
+CONDUIT ID <4-char-name> 
+    LENGTH <value-in-feet>
+    DIAMETER <value-in-feet>
+    [THICKNESS <value-in-inches>]
+    [ELASTICITY <value-in-psi>]
+    [CELERITY <value-in-ft-per-sec>]
+    FRICTION <darcy-weisbach-factor>
+    [NUMSEG <integer>]
+    [ENDLOSS AT <reservoir-id> CPLUS <coeff> CMINUS <coeff>]
+    [ADDEDLOSS AT <distance-ft> CPLUS <coeff> CMINUS <coeff>]
+    [VARIABLE DISTANCE <dist> AREA <area> ...]
+    [DUMMY]
+    [AS <existing-conduit-id>]
+FINISH
+Example:
+CONDUIT ID C1 LENGTH 100.3 DIAMETER 6.0 
+    THICKNESS 0.5 ELASTICITY 30000000 
+    FRICTION 0.008 NUMSEG 5 
+FINISH
+
+CONDUIT ID C2 LENGTH 500.0 DIAMETER 10.0 
+    CELERITY 4000.0 FRICTION 0.008 
+    ENDLOSS AT RES1 CPLUS 0.5 CMINUS 1.0 
+    ADDEDLOSS AT 300.0 CPLUS 0.4 CMINUS 0.4 
+    NUMSEG 8 
+FINISH
+
+CONDUIT ID C3 VARIABLE 
+    DISTANCE 0.0 AREA 314.0 
+    DISTANCE 30.0 AREA 227.0 
+    LENGTH 30.0 CELERITY 4000.0 FRICTION 0.008 
+FINISH
+
+CONDUIT ID DUM1 DUMMY FINISH
+2. RESERVOIR
+RESERVOIR ID <4-char-name>
+    [ELEV <elevation-in-feet>]
+    [HSCHEDULE <schedule-number>]
+FINISH
+Example:
+RESERVOIR ID HW ELEV 875.5 FINISH
+
+RESERVOIR ID TW ELEV 828.5 FINISH
+
+RESERVOIR ID RES1 HSCHEDULE 1 FINISH
+3. SURGETANK
+SURGETANK ID <4-char-name>
+    [SIMPLE | ONEWAY | DIFFERENTIAL | AIR]
+    ELBOTTOM <elevation-in-feet>
+    ELTOP <elevation-in-feet>
+    [DIAMETER <diameter-in-feet>]
+    [SHAPE ELEV <elev> AREA <area> ...]
+    [THICKNESS <value-in-inches>]
+    [ELASTICITY <value-in-psi>]
+    [CELERITY <value-in-ft-per-sec>]
+    FRICTION <friction-factor>
+    [CWEIR <weir-coefficient>]
+    [OUTLET ELOUT <elev> DOUT <diam> CDOUT <coeff>]
+    [OUTLET ELOUT <elev> WOUT <width> HOUT <height> CDOUT <coeff>]
+FINISH
+
+C For DIFFERENTIAL surge tank:
+SURGETANK ID <4-char-name> DIFFERENTIAL
+    ELBOTTOM <elevation>
+    RTOP <riser-top-elevation>
+    TTOP <tank-top-elevation>
+    RDIAM <riser-diameter>
+    TDIAM <tank-diameter>
+    [THICKNESS <value>]
+    [ELASTICITY <value>]
+    [CELERITY <value>]
+    FRICTION <friction-factor>
+    AORIFICE <orifice-area-sq-ft>
+    CDIN <discharge-coeff-in>
+    CDOUT <discharge-coeff-out>
+    [CWEIR <weir-coefficient>]
+FINISH
+
+C For AIR CHAMBER surge tank:
+SURGETANK ID <4-char-name> AIR
+    ELBOTTOM <elevation>
+    ELTOP <elevation>
+    [DIAMETER <diameter>]
+    [SHAPE ELEV <elev> AREA <area> ...]
+    [THICKNESS <value>]
+    [ELASTICITY <value>]
+    [CELERITY <value>]
+    FRICTION <friction-factor>
+    [TEMP <temperature-F>]
+    [PBAR <barometric-pressure-psi>]
+    [N <polytropic-exponent>]
+    [RHT]
+    [PINIT <initial-pressure-psi> | WSINIT <initial-WS-elev> | AINIT <initial-air-mass>]
+    [VENT PRES <pressure> CA <coeff-times-area> ...]
+FINISH
+Examples:
+C Simple Surge Tank
+SURGETANK ID ST ELBOTTOM 1515.0 ELTOP 1660.0 
+    DIAM 70.0 CELERITY 2840.0 FRICTION 0.02 
+FINISH
+
+C One-Way Surge Tank
+SURGETANK ID OWST ONEWAY 
+    ELBOTTOM 232.0 ELTOP 238.0 
+    DIAM 25.0 CELERITY 3000.0 FRICTION 0.012 
+FINISH
+
+C Differential Surge Tank
+SURGETANK ID DST DIFFERENTIAL 
+    ELBOTTOM 851.0 RTOP 939.0 TTOP 944.0 
+    RDIAM 13.5 TDIAM 32.0 
+    CELERITY 3471.0 FRICTION 0.01 
+    AORIFICE 8.4 CDIN 0.7 CDOUT 0.7 
+FINISH
+
+C Air Chamber Surge Tank
+SURGETANK ID CHAM AIR 
+    ELBOTTOM 340.0 ELTOP 393.0 
+    CELERITY 3200.0 FRICTION 0.02 
+    SHAPE ELEV 340.0 AREA 950.0 
+        ELEV 350.0 AREA 1070.0 
+        ELEV 360.0 AREA 1122.0 
+        ELEV 370.0 AREA 1122.0 
+        ELEV 380.0 AREA 1070.0 
+    TEMP 70.0 PBAR 14.5 N 1.4 
+    WSINIT 353.2 
+FINISH
+4. DCHANGE (Diameter Change)
+DCHANGE ID <4-char-name>
+    [CPLUS <head-loss-coeff-positive-flow>]
+    [CMINUS <head-loss-coeff-negative-flow>]
+    [DUP <upstream-diameter-feet>]
+    [DDOWN <downstream-diameter-feet>]
+    [ANGLE <flare-angle-degrees>]
+FINISH
+
+C Alternative commands (synonymous):
+EXPANSION ID <4-char-name> ...
+CONTRACTION ID <4-char-name> ...
+Examples:
+C Specify coefficients directly
+DCHANGE ID DC1 CPLUS 0.4 CMINUS 0.2 FINISH
+
+C Compute from geometry (default angle = 90°)
+DCHANGE ID DC2 FINISH
+
+C Specify geometry for calculation
+DCHANGE ID DC3 DUP 10.0 DDOWN 8.0 ANGLE 45.0 FINISH
+
+C Using EXPANSION synonym
+EXPANSION ID EXP1 CPLUS 3.2 CMINUS 2.8 FINISH
+5. FLOWBC (Flow Boundary Condition)
+FLOWBC ID <4-char-name>
+    [Q <constant-discharge-cfs>]
+    [QSCHEDULE <schedule-number>]
+FINISH
+Examples:
+C Constant flow boundary
+FLOWBC ID FBC1 Q 3820.0 FINISH
+
+C Time-varying flow boundary
+FLOWBC ID FBC2 QSCHEDULE 1 FINISH
+
+C Associated schedule definition (separate command):
+SCHEDULE QSCHEDULE 1 
+    TIME 0.0 Q 843.0 
+    TIME 0.01 Q 0.0 
+FINISH
+
+Complete .inp File Structure
+A complete WHAMO .inp file must include:
+C ============================================
+C TITLE LINE (MUST BE FIRST LINE)
+C ============================================
+Your Simulation Title Here
+
+C ============================================
+C SYSTEM CONNECTIVITY
+C ============================================
+SYSTEM
+    EL <element-id> AT <node-number>
+    EL <element-id> LINK <upstream-node> <downstream-node>
+    JUNCTION AT <node-number>
+    NODE <node-number> ELEV <elevation>
+FINISH
+
+C ============================================
+C ELEMENT PROPERTIES
+C ============================================
+RESERVOIR ID ... FINISH
+CONDUIT ID ... FINISH
+SURGETANK ID ... FINISH
+DCHANGE ID ... FINISH
+FLOWBC ID ... FINISH
+C ... other elements ...
+
+C ============================================
+C OUTPUT REQUESTS
+C ============================================
+HISTORY
+    NODE <number> HEAD Q
+    ELEM <id> <parameters>
+FINISH
+
+PLOTFILE
+    NODE <number> HEAD Q
+FINISH
+
+DISPLAY ALL FINISH
+
+C ============================================
+C COMPUTATIONAL PARAMETERS
+C ============================================
+CONTROL 
+    DTCOMP <timestep> DTOUT <output-interval> TMAX <max-time>
+FINISH
+
+C ============================================
+C EXECUTION CONTROL
+C ============================================
+[CHECK]
+GO
+GOODBYE
+
+Key Syntax Rules:
+Comments: Start with C in the first column
+Continuation: Commands can span multiple lines
+Termination: Each primary command block ends with FINISH
+Abbreviations: Commands can be abbreviated to 4 characters
+Order: Most commands can be in any order (except title and GO/GOODBYE)
+Delimiters: Use spaces to separate commands and values
+Comments in lines: Enclose in parentheses ( )
+Arrays: Can use spaces or commas between values
+This syntax should be sufficient for creating a GUI that generates proper WHAMO .inp files for these 5 elements!
