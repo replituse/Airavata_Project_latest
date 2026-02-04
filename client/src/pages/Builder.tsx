@@ -1,344 +1,234 @@
-import { useElements, useCreateElement, useDeleteElement } from "@/hooks/use-elements";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertElementSchema, type InsertElement } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Plus, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
+import { 
+  File, 
+  FolderOpen, 
+  Save, 
+  Undo2, 
+  Redo2, 
+  Play, 
+  Square, 
+  Search, 
+  ZoomIn, 
+  ZoomOut,
+  MousePointer2,
+  Trash2,
+  Settings,
+  HelpCircle,
+  FileText,
+  Activity,
+  Map as MapIcon,
+  LayoutDashboard,
+  Droplets,
+  Zap,
+  Waves,
+  Database,
+  Thermometer,
+  ArrowDownCircle,
+  Plus
+} from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { useElements, useCreateElement, useDeleteElement } from "@/hooks/use-elements";
+import { useToast } from "@/hooks/use-toast";
 
-// Extend the base schema to handle the JSONB properties properly in the form
-const formSchema = insertElementSchema.extend({
-  properties: z.object({
-    length: z.coerce.number().optional(),
-    diameter: z.coerce.number().optional(),
-    elevation: z.coerce.number().optional(),
-    loss: z.coerce.number().optional(),
-    power: z.coerce.number().optional(),
-    elTop: z.coerce.number().optional(),
-    elBottom: z.coerce.number().optional(),
-    celerity: z.coerce.number().optional(),
-    friction: z.coerce.number().optional(),
-  })
-});
+const componentPalette = [
+  { id: "CONDUIT", name: "CONDUIT", desc: "Pipe Element", icon: Droplets, color: "bg-blue-500" },
+  { id: "RESERVOIR", name: "RESERVOIR", desc: "Boundary Condition", icon: Waves, color: "bg-sky-500" },
+  { id: "VALVE", name: "VALVE", desc: "Control Device", icon: Settings, color: "bg-blue-600" },
+  { id: "SURGETANK", name: "SURGE TANK", desc: "Pressure Relief", icon: Zap, color: "bg-cyan-500" },
+  { id: "D_CHANGE", name: "D CHANGE", desc: "Diameter Change", icon: Database, color: "bg-blue-400" },
+];
 
-type FormValues = z.infer<typeof formSchema>;
+const menuItems = ["File", "Edit", "View", "Tools", "Help"];
 
 export default function Builder() {
   const { data: elements, isLoading } = useElements();
   const createElement = useCreateElement();
   const deleteElement = useDeleteElement();
   const { toast } = useToast();
-  const [selectedType, setSelectedType] = useState<string>("PIPE");
+  const [selectedElementId, setSelectedElementId] = useState<number | null>(null);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: "PIPE",
-      name: "",
-      properties: {},
-    },
-  });
-
-  const onSubmit = (data: FormValues) => {
-    createElement.mutate(data, {
+  const handleAddComponent = (type: string) => {
+    createElement.mutate({
+      type,
+      name: `${type}-${Date.now().toString().slice(-4)}`,
+      properties: {}
+    }, {
       onSuccess: () => {
-        toast({
-          title: "Element Added",
-          description: `${data.type} ${data.name} has been added to the system.`,
-        });
-        form.reset({
-          type: selectedType,
-          name: "",
-          properties: {},
-        });
-      },
-      onError: (err) => {
-        toast({
-          title: "Error",
-          description: err.message,
-          variant: "destructive",
-        });
-      },
+        toast({ title: "Component Added", description: `New ${type} added to canvas.` });
+      }
     });
   };
 
-  const handleTypeChange = (value: string) => {
-    setSelectedType(value);
-    form.setValue("type", value);
-    // Reset properties when type changes to avoid pollution
-    form.setValue("properties", {});
-  };
-
-  const handleDelete = (id: number) => {
-    deleteElement.mutate(id, {
-      onSuccess: () => {
-        toast({
-          title: "Deleted",
-          description: "Element removed from system.",
-        });
-      },
-    });
-  };
+  const selectedElement = elements?.find(e => e.id === selectedElementId);
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-slate-50/50">
-      {/* Left Panel: Form */}
-      <div className="w-full md:w-[400px] p-6 bg-white border-r overflow-y-auto">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-900">System Builder</h2>
-          <p className="text-sm text-muted-foreground mt-1">Configure hydraulic network topology.</p>
+    <div className="flex flex-col h-screen bg-[#1e1e1e] text-[#d4d4d4] overflow-hidden select-none">
+      {/* Menu Bar */}
+      <div className="flex items-center px-4 h-8 bg-[#252526] border-b border-[#333] text-sm">
+        <div className="flex gap-4 mr-8">
+          {menuItems.map(item => (
+            <span key={item} className="cursor-pointer hover:text-white transition-colors">{item}</span>
+          ))}
         </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Element Type</FormLabel>
-                  <Select onValueChange={(val) => handleTypeChange(val)} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="PIPE">Pipe / Conduit</SelectItem>
-                      <SelectItem value="VALVE">Valve</SelectItem>
-                      <SelectItem value="RESERVOIR">Reservoir</SelectItem>
-                      <SelectItem value="TURBINE">Turbine</SelectItem>
-                      <SelectItem value="SURGETANK">Surge Tank</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Element ID / Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. PIPE-01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4 p-4 bg-slate-50 rounded-lg border">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                Properties
-                <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-0.5 rounded border">
-                  {selectedType}
-                </span>
-              </h3>
-
-              {selectedType === "PIPE" && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="properties.length"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Length (m)</FormLabel>
-                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="properties.diameter"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Diameter (m)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="properties.friction"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Friction Factor</FormLabel>
-                        <FormControl><Input type="number" step="0.001" placeholder="0.012" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              {selectedType === "RESERVOIR" && (
-                <FormField
-                  control={form.control}
-                  name="properties.elevation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">Elevation (m)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {selectedType === "VALVE" && (
-                <FormField
-                  control={form.control}
-                  name="properties.loss"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">Loss Coefficient</FormLabel>
-                      <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {selectedType === "TURBINE" && (
-                <FormField
-                  control={form.control}
-                  name="properties.power"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">Rated Power (MW)</FormLabel>
-                      <FormControl><Input type="number" step="1" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {selectedType === "SURGETANK" && (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <FormField
-                      control={form.control}
-                      name="properties.elTop"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Top Elev (m)</FormLabel>
-                          <FormControl><Input type="number" {...field} /></FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="properties.elBottom"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Bottom Elev (m)</FormLabel>
-                          <FormControl><Input type="number" {...field} /></FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="properties.diameter"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Tank Diameter (m)</FormLabel>
-                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all"
-              disabled={createElement.isPending}
-            >
-              {createElement.isPending ? "Adding..." : (
-                <><Plus className="w-4 h-4 mr-2" /> Add Element</>
-              )}
-            </Button>
-          </form>
-        </Form>
+        <div className="text-[#4ec9b0] font-medium text-xs tracking-wider">
+          Hydro Transient Model Studio
+        </div>
       </div>
 
-      {/* Right Panel: List */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-sm border-muted">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>System Components</CardTitle>
-                <CardDescription>
-                  Review and manage the hydraulic network elements.
-                </CardDescription>
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 px-4 h-12 bg-[#2d2d2d] border-b border-[#333]">
+        <div className="flex gap-1 pr-4 border-r border-[#444]">
+          <ToolbarButton icon={File} tooltip="New File" />
+          <ToolbarButton icon={FolderOpen} tooltip="Open File" />
+          <ToolbarButton icon={Save} tooltip="Save Project" />
+        </div>
+        <div className="flex gap-1 px-4 border-r border-[#444]">
+          <ToolbarButton icon={Undo2} tooltip="Undo" />
+          <ToolbarButton icon={Redo2} tooltip="Redo" />
+        </div>
+        <div className="flex gap-1 px-4 border-r border-[#444]">
+          <ToolbarButton icon={Play} tooltip="Run Simulation" className="text-blue-400" />
+          <ToolbarButton icon={Square} tooltip="Stop Simulation" />
+        </div>
+        <div className="flex gap-1 px-4">
+          <ToolbarButton icon={ZoomIn} tooltip="Zoom In" />
+          <ToolbarButton icon={ZoomOut} tooltip="Zoom Out" />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar: Component Palette */}
+        <div className="w-64 bg-[#252526] border-r border-[#333] flex flex-col">
+          <div className="p-3 text-xs font-semibold text-[#888] flex items-center gap-2 uppercase tracking-widest">
+            <Zap className="w-3 h-3 text-yellow-500" /> Component Palette
+          </div>
+          <div className="p-2 space-y-2 overflow-y-auto">
+            <div className="px-2 py-1 text-[10px] text-[#555] font-bold uppercase">Hydraulic Components</div>
+            {componentPalette.map(comp => (
+              <button
+                key={comp.id}
+                onClick={() => handleAddComponent(comp.id)}
+                className="w-full flex items-center gap-3 p-2 rounded bg-[#333] hover:bg-[#444] border border-transparent hover:border-[#555] transition-all group text-left"
+              >
+                <div className={cn("w-8 h-8 rounded flex items-center justify-center text-white", comp.color)}>
+                  <comp.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#ccc] group-hover:text-white">{comp.name}</div>
+                  <div className="text-[10px] text-[#888]">{comp.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Central Canvas */}
+        <div className="flex-1 relative bg-[#121212] overflow-hidden group">
+          {/* Grid Background */}
+          <div 
+            className="absolute inset-0 opacity-10 pointer-events-none" 
+            style={{ 
+              backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', 
+              backgroundSize: '24px 24px' 
+            }} 
+          />
+          
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-[#444]">
+            <MousePointer2 className="w-16 h-16 mb-4 opacity-20" />
+            <div className="text-lg font-medium opacity-40">Drag components from the palette to design your hydraulic system</div>
+            <div className="text-sm opacity-20 uppercase tracking-[0.2em] mt-2 font-bold">Design Canvas</div>
+          </div>
+
+          {/* Rendered Elements (Simple Visual List for Canvas) */}
+          <div className="absolute inset-0 p-8 flex flex-wrap gap-6 content-start overflow-auto">
+            {elements?.map((el) => (
+              <div
+                key={el.id}
+                onClick={() => setSelectedElementId(el.id)}
+                className={cn(
+                  "w-24 h-24 rounded-lg bg-[#2d2d2d] border-2 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105",
+                  selectedElementId === el.id ? "border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "border-[#444] hover:border-[#666]"
+                )}
+              >
+                <div className="w-10 h-10 rounded bg-[#333] flex items-center justify-center text-blue-400">
+                  <Waves className="w-6 h-6" />
+                </div>
+                <div className="text-[10px] font-bold truncate max-w-full px-2 uppercase">{el.name}</div>
               </div>
-              <div className="bg-slate-100 px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-600">
-                {elements?.length || 0} ITEMS
+            ))}
+          </div>
+        </div>
+
+        {/* Right Sidebar: Properties */}
+        <div className="w-72 bg-[#252526] border-l border-[#333] flex flex-col">
+          <div className="p-3 text-xs font-semibold text-[#888] flex items-center gap-2 uppercase tracking-widest border-b border-[#333]">
+            <FileText className="w-3 h-3" /> Properties
+          </div>
+          
+          <div className="flex-1 p-6 flex flex-col items-center justify-center text-center text-[#555]">
+            {!selectedElement ? (
+              <>
+                <FileText className="w-12 h-12 mb-4 opacity-10" />
+                <p className="text-xs leading-relaxed max-w-[180px]">Select a component to view and edit its properties</p>
+              </>
+            ) : (
+              <div className="w-full text-left self-start">
+                <div className="mb-6">
+                  <Label className="text-[10px] text-[#888] uppercase font-bold tracking-wider">Type</Label>
+                  <div className="text-white font-bold">{selectedElement.type}</div>
+                </div>
+                <div className="mb-6">
+                  <Label className="text-[10px] text-[#888] uppercase font-bold tracking-wider">ID / Name</Label>
+                  <div className="text-white font-bold">{selectedElement.name}</div>
+                </div>
+                <Separator className="bg-[#333] my-4" />
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    deleteElement.mutate(selectedElement.id);
+                    setSelectedElementId(null);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete Component
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex flex-col gap-4">
-                  {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-lg" />)}
-                </div>
-              ) : elements?.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
-                  <p>No elements added yet.</p>
-                  <p className="text-xs mt-1">Use the form on the left to build your system.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {elements?.map((element) => (
-                    <div 
-                      key={element.id} 
-                      className="group flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-md hover:border-primary/30 transition-all duration-200"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-md bg-slate-50 flex items-center justify-center font-bold text-slate-400 border text-xs">
-                          {element.type.slice(0, 3)}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-800">{element.name}</h4>
-                          <div className="text-xs text-muted-foreground mt-0.5 font-mono">
-                            {Object.entries(element.properties).map(([k, v]) => (
-                              <span key={k} className="mr-3">{k.toUpperCase()}: {v}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleDelete(element.id)}
-                        disabled={deleteElement.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function ToolbarButton({ icon: Icon, tooltip, className }: { icon: any, tooltip: string, className?: string }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className={cn("h-8 w-8 text-[#aaa] hover:text-white hover:bg-[#444] rounded", className)}>
+            <Icon className="w-4 h-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-[#111] text-white border-[#333] text-[10px]">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function Label({ children, className }: { children: React.ReactNode, className?: string }) {
+  return <div className={cn("mb-1", className)}>{children}</div>;
 }
